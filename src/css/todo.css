@@ -12,3 +12,9 @@
 .form-control:focus {
   box-shadow: none;
 }
+
+/*Aparición lenta de taréa */
+.list-item {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }

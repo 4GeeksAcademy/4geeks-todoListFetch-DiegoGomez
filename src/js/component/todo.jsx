@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../../css/todo.css";
 
 const Todo = () => {
@@ -49,6 +49,22 @@ const Todo = () => {
     }
   };
 
+  //Uso useEffect para hacer funcionar la transición que ocurre al añadir taréas.
+  useEffect(() => {
+    //Con setTimeOut, retraso la aparición de la opacidad 100 milisegundos
+    const timeoutId = setTimeout(() => {
+      //Selecciono todos los elementos que tengan la clase list-item aplicando una opacidad de 1 para
+      //hacer las tareas visibles.
+      document.querySelectorAll(".list-item").forEach((item) => {
+        item.style.opacity = 1;
+      });
+    }, 100);
+
+    //clearTimeOut se ejecutar cada vez que el array tasks cambia, de forma que con cada tarea
+    //añadida habrá una nueva transición.
+    return () => clearTimeout(timeoutId);
+  }, [tasks]);
+
   return (
     <div className="text-center">
       <p className="mt-2">Diego Gómez</p>
@@ -80,7 +96,7 @@ const Todo = () => {
             //El key que tienen los objetos de mi lista es el índice que recorre las taréas, de esta forma me
             //aseguro de que cada tarea sea única
             key={index}
-            className="list-group-item d-flex justify-content-between align-items-center"
+            className="list-group-item d-flex justify-content-between align-items-center list-item"
           >
             {task}
             <span

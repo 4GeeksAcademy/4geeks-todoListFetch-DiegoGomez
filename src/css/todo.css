@@ -1,0 +1,14 @@
+/* Mostrar la x solo cuando se posiciona el ratón encima */
+.list-group-item i {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.list-group-item:hover i {
+  opacity: 1;
+}
+
+/*Eliminar el borde azul al hacer clic en el input */
+.form-control:focus {
+  box-shadow: none;
+}

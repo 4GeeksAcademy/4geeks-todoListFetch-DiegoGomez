@@ -1,118 +1,126 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "../../css/todo.css";
 
 const Todo = () => {
-  // Estado para las taréas
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState([]); // Estado para almacenar las tareas
+  const [newTask, setNewTask] = useState(""); // Estado para la nueva tarea
 
-  // Estado para las nuevas tareas
-  const [newTask, setNewTask] = useState("");
+  const apiUrl = "http://localhost:3000/todos/user/diegogomezgonza"; // URL de la API
 
-  // Función para añadir una nueva tarea
-  const addTask = () => {
-    // Compruebo si la tarea no es un string vacío/si hay algo escrito. Utilizo trim porque así me aseguro de
-    //eliminar espacios en blanco.
-    if (newTask.trim()) {
-      // Si hay una tarea/se ha escrito, añádela a la nueva lista (...tasks). El poner los
-      //tres puntos al lado de la lista indica que creo una nueva con el mismo contenido.
-      //A esta lista nueva, le añado la nueva tarea.
-      setTasks([...tasks, newTask.trim()]);
+  // Función para crear una nueva lista de tareas
+  const createTodoList = async () => {
+    try {
+      const response = await axios.post(apiUrl, []); // Enviar una solicitud POST para crear una nueva lista de tareas
 
-      // Limpio el campo para las nuevas taréas.
-      setNewTask("");
-    }
-  };
-
-  // Función para eliminar taréas, se eliminan segun el index
-  const deleteTask = (indexToDelete) => {
-    // Creo una lista vacía
-    const finalTasks = [];
-
-    //Recorro todas las tareas de la lista original de tareas (tasks)
-    for (let i = 0; i < tasks.length; i++) {
-      //Si el índice actual es diferente al de la tarea que se va a eliminar, se añade al array
-      //finalTasks, el cual contiene las taréas que se muestran.
-      if (i !== indexToDelete) {
-        finalTasks.push(tasks[i]);
+      if (response.data.result === "ok") {
+        console.log("Lista de tareas creada exitosamente");
+      } else {
+        console.error("Error al crear la lista de tareas:", response.data);
       }
+    } catch (error) {
+      console.error("Error al crear la lista de tareas:", error.message);
     }
-
-    // Actualizo el estado de las tareas para que contenga las finales.
-    setTasks(finalTasks);
   };
 
-  // Función para gestionar al pulsar la tecla enter
+  // Función para obtener las tareas desde el servidor
+  const fetchTasks = async () => {
+    try {
+      const response = await axios.get(apiUrl); // Obtener las tareas desde la API
+      setTasks(response.data); // Actualizar el estado con las tareas obtenidas
+    } catch (error) {
+      console.error("Error al obtener las tareas:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    const initializeTodoList = async () => {
+      try {
+        const response = await axios.get(apiUrl); // Verificar si la lista de tareas existe haciendo una solicitud GET
+
+        if (response.data.length === 0) {
+          await createTodoList(); // Si la lista no existe, crearla
+        }
+
+        fetchTasks(); // Obtener las tareas después de asegurarse de que la lista de tareas existe
+      } catch (error) {
+        console.error("Error al verificar la lista de tareas:", error.message);
+      }
+    };
+
+    initializeTodoList();
+  }, [apiUrl]);
+
+  // Función para agregar una nueva tarea
+  const addTask = async () => {
+    try {
+      if (newTask.trim()) {
+        const updatedTasks = [...tasks, { label: newTask.trim(), done: false }]; // Crear una nueva lista de tareas con la tarea agregada
+
+        await axios.put(apiUrl, updatedTasks); // Enviar una solicitud PUT para actualizar la lista de tareas en el servidor
+
+        setTasks(updatedTasks); // Actualizar el estado con la nueva lista de tareas
+        setNewTask(""); // Limpiar el campo de nueva tarea
+      }
+    } catch (error) {
+      console.error("Error al agregar una tarea:", error.message);
+    }
+  };
+
+  // Función para manejar la tecla Enter al agregar una tarea
   const handleEnter = (e) => {
     if (e.key === "Enter") {
-      // Si enter se pulsa, ejecuta la función para añadir la taréa
-      addTask();
+      addTask(); // Si la tecla presionada es Enter, agregar la tarea
     }
   };
 
-  //Uso useEffect para hacer funcionar la transición que ocurre al añadir taréas.
-  useEffect(() => {
-    //Con setTimeOut, retraso la aparición de la opacidad 100 milisegundos
-    const timeoutId = setTimeout(() => {
-      //Selecciono todos los elementos que tengan la clase list-item aplicando una opacidad de 1 para
-      //hacer las tareas visibles.
-      document.querySelectorAll(".list-item").forEach((item) => {
-        item.style.opacity = 1;
-      });
-    }, 100);
-
-    //clearTimeOut se ejecutar cada vez que el array tasks cambia, de forma que con cada tarea
-    //añadida habrá una nueva transición.
-    return () => clearTimeout(timeoutId);
-  }, [tasks]);
+  // Función para eliminar todas las tareas
+  const clearAllTasks = async () => {
+    await axios.delete(apiUrl); // Enviar una solicitud DELETE para eliminar todas las tareas en el servidor
+    setTasks([]); // Actualizar el estado con una lista vacía de tareas
+  };
 
   return (
     <div className="text-center">
       <p className="mt-2">Diego Gómez</p>
       <hr className="w-50 mx-auto" />
-      <h1 className="display-1 opacity-25">To do list</h1>
+      <h1 className="display-1 opacity-25">Lista de tareas</h1>
 
       <div className="mt-3">
         <div className="input-group mb-3 mx-auto w-50 input-group-lg">
           <input
             type="text"
             className="form-control"
-            placeholder="Study React"
-            //El contenido que se escriba en el input se guardará en newTask
+            placeholder="Estudiar React"
             value={newTask}
-            //Cada vez que el contenido del input cambie, se ejecuta esta función la cual actualiza el valor
-            //de newTask.
             onChange={(e) => setNewTask(e.target.value)}
-            //Con onKeyDown consigo que la función para que se añada la taréa al pulsar enter funcione
             onKeyDown={handleEnter}
           />
         </div>
+        <button className="btn btn-danger mt-3" onClick={clearAllTasks}>
+          Borrar todas las tareas
+        </button>
       </div>
 
       <ul className="list-group mt-3 mx-auto w-50">
-        {/* Hago un map de las tareas, mientras que task es la tarea que muestro en el contenido del li,
-         index será el indice que use para recorrer las tareas*/}
         {tasks.map((task, index) => (
           <li
-            //El key que tienen los objetos de mi lista es el índice que recorre las taréas, de esta forma me
-            //aseguro de que cada tarea sea única
             key={index}
             className="list-group-item d-flex justify-content-between align-items-center list-item"
           >
-            {task}
+            {task.label}
             <span
               className="badge badge-danger badge-pill"
               style={{ cursor: "pointer" }}
-              //El onclick que le asigno a la x elimina la tarea, para esto ejecuto la función deleteTask
               onClick={() => deleteTask(index)}
             >
-              <i class="fa-solid fa-x" style={{ color: "#c20000" }}></i>
+              <i className="fa-solid fa-x" style={{ color: "#c20000" }}></i>
             </span>
           </li>
         ))}
       </ul>
 
-      {/* Para mostrar cuantas tareas quedan, muestro su .length */}
-      <p className="mt-3 mx-auto w-50">{tasks.length} items left</p>
+      <p className="mt-3 mx-auto w-50">{tasks.length} elementos restantes</p>
     </div>
   );
 };

@@ -1,71 +1,137 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import "../../css/todo.css";
+import axios from "axios"; // Importar la biblioteca axios
 
 const Todo = () => {
-  const [tasks, setTasks] = useState([]); // Estado para almacenar las tareas
-  const [newTask, setNewTask] = useState(""); // Estado para la nueva tarea
+  // Estados para las tareas, nueva tarea, y alerta de bienvenida
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState("");
+  const [showWelcomeAlert, setShowWelcomeAlert] = useState(false);
 
-  const apiUrl = "http://localhost:3000/todos/user/diegogomezgonza"; // URL de la API
+  // URLs de la API
+  const getApiUrl = "https://playground.4geeks.com/apis/fake/todos/user";
+  const postPutApiUrl =
+    "https://playground.4geeks.com/apis/fake/todos/user/diegogomezgonza";
 
-  // Función para crear una nueva lista de tareas
-  const createTodoList = async () => {
+  // Función para crear un usuario
+  const createUser = async () => {
     try {
-      const response = await axios.post(apiUrl, []); // Enviar una solicitud POST para crear una nueva lista de tareas
+      const response = await fetch(postPutApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([]),
+      });
 
-      if (response.data.result === "ok") {
-        console.log("Lista de tareas creada exitosamente");
+      if (response.ok) {
+        console.log("Usuario creado");
       } else {
-        console.error("Error al crear la lista de tareas:", response.data);
+        console.error("Error al crear usuario:", response.statusText);
       }
     } catch (error) {
-      console.error("Error al crear la lista de tareas:", error.message);
+      console.error("Error al crear usuario:", error.message);
     }
   };
 
-  // Función para obtener las tareas desde el servidor
-  const fetchTasks = async () => {
+  // Función para guardar las tareas en el almacenamiento local
+  const saveTasksToLocalStorage = (tasks) => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  };
+
+  // Función para obtener las tareas desde el almacenamiento local
+  const getTasksFromLocalStorage = () => {
+    const storedTasks = localStorage.getItem("tasks");
+    return storedTasks ? JSON.parse(storedTasks) : [];
+  };
+
+  // Función para eliminar una tarea
+  const deleteTask = async (index) => {
     try {
-      const response = await axios.get(apiUrl); // Obtener las tareas desde la API
-      setTasks(response.data); // Actualizar el estado con las tareas obtenidas
+      const updatedTasks = [...tasks];
+      updatedTasks.splice(index, 1);
+
+      const response = await fetch(postPutApiUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedTasks),
+      });
+
+      if (response.ok) {
+        console.log("Tarea eliminada exitosamente");
+        setTasks(updatedTasks);
+      } else {
+        console.error("Error al eliminar la tarea:", response.statusText);
+      }
     } catch (error) {
-      console.error("Error al obtener las tareas:", error.message);
+      console.error("Error al eliminar la tarea:", error.message);
     }
   };
-
-  useEffect(() => {
-    const initializeTodoList = async () => {
-      try {
-        const response = await axios.get(apiUrl); // Verificar si la lista de tareas existe haciendo una solicitud GET
-
-        if (response.data.length === 0) {
-          await createTodoList(); // Si la lista no existe, crearla
-        }
-
-        fetchTasks(); // Obtener las tareas después de asegurarse de que la lista de tareas existe
-      } catch (error) {
-        console.error("Error al verificar la lista de tareas:", error.message);
-      }
-    };
-
-    initializeTodoList();
-  }, [apiUrl]);
 
   // Función para agregar una nueva tarea
   const addTask = async () => {
     try {
       if (newTask.trim()) {
-        const updatedTasks = [...tasks, { label: newTask.trim(), done: false }]; // Crear una nueva lista de tareas con la tarea agregada
+        const updatedTasks = [...tasks, { label: newTask.trim(), done: false }];
+        const response = await fetch(postPutApiUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedTasks),
+        });
 
-        await axios.put(apiUrl, updatedTasks); // Enviar una solicitud PUT para actualizar la lista de tareas en el servidor
-
-        setTasks(updatedTasks); // Actualizar el estado con la nueva lista de tareas
-        setNewTask(""); // Limpiar el campo de nueva tarea
+        if (response.ok) {
+          console.log("Tarea agregada exitosamente");
+          setTasks(updatedTasks);
+          setNewTask("");
+        } else {
+          console.error("Error al agregar una tarea:", response.statusText);
+        }
       }
     } catch (error) {
       console.error("Error al agregar una tarea:", error.message);
     }
   };
+
+  // Efecto para verificar el usuario y mostrar la alerta de bienvenida
+  useEffect(() => {
+    const checkUserAndShowAlert = async () => {
+      try {
+        const response = await fetch(getApiUrl);
+
+        if (response.ok) {
+          const data = await response.json();
+          const userExists = data.some((user) => user === "diegogomezgonza");
+
+          if (userExists) {
+            setShowWelcomeAlert(true);
+            createUser(); // Opcionalmente, crear el usuario aquí si es necesario
+          } else {
+            createUser();
+          }
+        } else {
+          console.error("Error al verificar el usuario:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error al verificar el usuario:", error.message);
+      }
+    };
+
+    checkUserAndShowAlert();
+  }, [getApiUrl]);
+
+  // Efecto para cargar las tareas desde el almacenamiento local al montar el componente
+  useEffect(() => {
+    const storedTasks = getTasksFromLocalStorage();
+    setTasks(storedTasks);
+  }, []);
+
+  // Efecto para guardar las tareas en el almacenamiento local cada vez que cambian
+  useEffect(() => {
+    saveTasksToLocalStorage(tasks);
+  }, [tasks]);
 
   // Función para manejar la tecla Enter al agregar una tarea
   const handleEnter = (e) => {
@@ -76,15 +142,43 @@ const Todo = () => {
 
   // Función para eliminar todas las tareas
   const clearAllTasks = async () => {
-    await axios.delete(apiUrl); // Enviar una solicitud DELETE para eliminar todas las tareas en el servidor
-    setTasks([]); // Actualizar el estado con una lista vacía de tareas
+    try {
+      const response = await fetch(postPutApiUrl, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        console.log("Todas las tareas eliminadas exitosamente");
+        setTasks([]);
+      } else {
+        console.error("Error al borrar todas las tareas:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error al borrar todas las tareas:", error.message);
+    }
   };
 
+  // Efecto para ocultar la alerta de bienvenida después de 4 segundos
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setShowWelcomeAlert(false);
+    }, 4000);
+
+    // Limpiar el temporizador cuando el componente se desmonta o cuando se cierra manualmente la alerta
+    return () => clearTimeout(timeoutId);
+  }, [showWelcomeAlert]);
+
+  // Renderizar el componente
   return (
     <div className="text-center">
       <p className="mt-2">Diego Gómez</p>
       <hr className="w-50 mx-auto" />
-      <h1 className="display-1 opacity-25">Lista de tareas</h1>
+      {showWelcomeAlert && (
+        <div className="alert alert-success" role="alert">
+          ¡Bienvenido Diego!
+        </div>
+      )}
+      <h1 className="display-1 opacity-25">To do list with Fetch API</h1>
 
       <div className="mt-3">
         <div className="input-group mb-3 mx-auto w-50 input-group-lg">
@@ -120,7 +214,7 @@ const Todo = () => {
         ))}
       </ul>
 
-      <p className="mt-3 mx-auto w-50">{tasks.length} elementos restantes</p>
+      <p className="mt-3 mx-auto w-50">{tasks.length} items left</p>
     </div>
   );
 };
